@@ -1,0 +1,29 @@
+executing = false
+_callback = nil
+
+function onDrop(color) waitForIt(color) end
+function onRandomize(color) waitForIt(color) end
+
+function waitForIt(color)
+    if not executing then
+        executing = true
+        Wait.condition(
+            function() rollFinished(color) end,
+            function() return self.resting end
+        )
+    end
+end
+
+function rollFinished(color)
+    _callback(self, _count)
+    executing = false
+end
+
+function addCallback(params)
+    _callback = |obj, x| params.src.call(params.cb,
+                                         {
+                                             value = obj.getValue(),
+                                             count = x
+                                         })
+    _count = params.count
+end

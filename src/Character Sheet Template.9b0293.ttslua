@@ -1,0 +1,348 @@
+disableSave = true
+
+rows = 5
+
+buttonFontColor = {0,0,0}
+buttonColor = {1,1,1}
+buttonScale = {0.1,0.1,0.1}
+
+ALIGN_LEFT = 2
+ALIGN_CENTER = 3
+
+textbox = {}
+checkbox = {}
+button = {}
+defaultButtonData = {}
+dice = {}
+
+function updateSave()
+    saved_data = JSON.encode(buttonData)
+    if disableSave==true then saved_data="" end
+    self.script_state = saved_data
+end
+
+function onLoad(saved_data)
+    if disableSave==true then saved_data="" end
+    if saved_data ~= "" then
+        local loaded_data = JSON.decode(saved_data)
+        buttonData = loaded_data
+    else
+        populateDefaultData()
+    end
+
+    spawnedButtonCount = 0
+    createCheckboxes()
+    createTextboxes()
+    createButtons()
+end
+
+function populateDefaultData()
+    for i=0,rows-1 do
+       table.insert(textbox,
+       {
+           pos = {-0.98,0.1,-1.05 + .35*i},
+           rows = 1,
+           width = 7500,
+           font_size = 800,
+           label = "",
+           value = "",
+           alignment = ALIGN_LEFT
+       })
+
+       table.insert(textbox,
+       {
+           pos = {0.19,0.1,-1.05 + .35*i},
+           rows = 1,
+           width = 1000,
+           font_size = 1000,
+           label = "0",
+           value = "0",
+           alignment = ALIGN_CENTER
+       })
+
+       table.insert(textbox,
+       {
+           pos = {0.835,0.1,-1.05 + .35*i},
+           rows = 1,
+           width = 1000,
+           font_size = 1000,
+           label = "0",
+           value = "0",
+           alignment = ALIGN_CENTER
+       })
+
+       table.insert(button,
+       {
+           pos = {1.5,0.1,-1.05 + .35*i},
+           width  = 1400,
+           height = 1000,
+           label = "Roll",
+           cb = || click_button(i)
+       })
+    end
+
+    wrathIndex = #textbox
+    table.insert(textbox,
+    {
+        pos       = {-0.896,0.1,1.294},
+        rows      = 1,
+        width     = 1000,
+        font_size = 1000,
+        label     = "0",
+        value     = "",
+        alignment = ALIGN_CENTER
+    })
+
+    iconsIndex = #textbox
+    table.insert(textbox,
+    {
+        pos       = {0.039,0.1,1.294},
+        rows      = 1,
+        width     = 1000,
+        font_size = 1000,
+        label     = "0",
+        value     = "",
+        alignment = ALIGN_CENTER
+    })
+
+    exaltsIndex = #textbox
+    table.insert(textbox,
+    {
+        pos       = {0.965,0.1,1.294},
+        rows      = 1,
+        width     = 1000,
+        font_size = 1000,
+        label     = "0",
+        value     = "",
+        alignment = ALIGN_CENTER
+    })
+
+    brutalIndex = #textbox
+    table.insert(textbox,
+    {
+        pos       = {0.037,0.098,1.688},
+        rows      = 1,
+        width     = 1000,
+        font_size = 1000,
+        label     = "0",
+        value     = "",
+        alignment = ALIGN_CENTER
+    })
+
+    table.insert(button,
+    {
+        pos    = {-1.337,0.258,1.726},
+        width  = 5000,
+        height = 1000,
+        label  = "Wrath Reroll",
+        cb     = || noOp() -- TODO implement
+    })
+
+    table.insert(button,
+    {
+        pos    = {1.526,0.258,1.726},
+        width  = 1800,
+        height = 1000,
+        label  = "Reset",
+        cb     = resetDice
+    })
+
+    defaultButtonData["textbox"]=textbox
+    defaultButtonData["checkbox"]=checkbox
+    defaultButtonData["button"]=button
+    buttonData = defaultButtonData
+end
+
+function resetDice()
+    for i,die in ipairs(dice) do
+        die.destruct()
+    end
+
+    dice = {}
+
+    self.editInput({
+        index=wrathIndex,
+        label=""
+    })
+
+    self.editInput({
+        index=iconsIndex,
+        label=""
+    })
+
+    self.editInput({
+        index=exaltsIndex,
+        label=""
+    })
+
+    self.editInput({
+        index=brutalIndex,
+        label=""
+    })
+end
+
+--Checks or unchecks the given box
+function clickCheckbox(tableIndex)
+    if buttonData.checkbox[tableIndex].state == true then
+        buttonData.checkbox[tableIndex].state = false
+        self.editButton({index=i-1, label=""})
+    else
+        buttonData.checkbox[tableIndex].state = true
+        self.editButton({index=i-1, label=string.char(10008)})
+    end
+    -- updateSave()
+end
+
+
+--Updates saved value for given text box
+function textboxChanged(i, value, selected)
+    if selected == false then
+        buttonData.textbox[i].value = value
+        self.editInput({
+            index=i-1,
+            value=value,
+            label=value
+        })
+        -- updateSave()
+    end
+end
+
+function addRollCallback(obj, count)
+    obj.call("addCallback", {src = self, cb = "printDieValue", count = count})
+end
+
+function printDieValue(params)
+    if params.count == 1 then
+        self.editInput({
+            index=wrathIndex,
+            label=params.value
+        })
+    end
+
+    if (params.value == 6) then
+        icons = icons + 2
+        brutalIcons = brutalIcons + 2
+        exaltedIcons = exaltedIcons + 1
+    elseif (params.value >= 5) then
+        icons = icons + 1
+        brutalIcons = brutalIcons + 2
+    elseif (params.value >= 4) then
+        icons = icons + 1
+        brutalIcons = brutalIcons + 1
+    elseif (params.value >= 3) then
+        brutalIcons = brutalIcons + 1
+    end
+
+    self.editInput({
+        index=iconsIndex,
+        label=icons
+    })
+
+    self.editInput({
+        index=exaltsIndex,
+        label=exaltedIcons
+    })
+
+    self.editInput({
+        index=brutalIndex,
+        label=brutalIcons
+    })
+
+end
+
+--Checks or unchecks the given box
+function click_button(buttonIndex)
+    die = getObjectFromGUID("28119d")
+    dieJson = die.getJSON()
+
+    math.randomseed(os.time())
+
+    label1 = self.getInputs()[buttonIndex * 3 + 2].label
+    label2 = self.getInputs()[buttonIndex * 3 + 3].label
+
+    n = tonumber(label1)
+    n = n + tonumber(label2)
+
+    icons = 0
+    brutalIcons = 0
+    exaltedIcons = 0
+    for i=1,n do
+        offsetx = math.random() * 3
+        offsetz = math.random() * 3
+        spawnParams = {
+            json              = dieJson,
+            position          = {x=self.getPosition().x + offsetx, y=self.getPosition().y+.6, z=self.getPosition().z + offsetz},
+            rotation          = {x=0, y=0, z=0},
+            scale             = {x=1, y=1, z=1},
+            callback_function = function (obj) addRollCallback(obj, i) end
+        }
+        local obj = spawnObjectJSON(spawnParams)
+        table.insert(dice, obj)
+
+        Wait.time(function()
+            obj.randomize()
+            obj.call("onRandomize", {})
+        end, .5)
+    end
+end
+
+function noOp() end
+
+function createCheckboxes()
+    for i, data in ipairs(buttonData.checkbox) do
+        local funcName = "checkbox"..i
+        local func = function() clickCheckbox(i) end
+        self.setVar(funcName, func)
+        --Sets up label
+        local label = ""
+        if data.state==true then label=string.char(10008) end
+        --Creates button and counts it
+        self.createButton({
+            label=label, click_function=funcName, function_owner=self,
+            position=data.pos, height=data.size, width=data.size,
+            font_size=data.size, scale=buttonScale,
+            color=buttonColor, font_color=buttonFontColor
+        })
+    end
+end
+
+function createTextboxes()
+    for i, data in ipairs(buttonData.textbox) do
+        --Sets up reference function
+        local funcName = "textbox"..i
+        local func = function(_,_,val,sel) textboxChanged(i,val,sel) end
+        self.setVar(funcName, func)
+
+        self.createInput({
+            input_function = funcName,
+            function_owner = self,
+            label          = data.label,
+            alignment      = data.alignment,
+            position       = data.pos,
+            scale          = buttonScale,
+            width          = data.width,
+            height         = (data.font_size*data.rows)+24,
+            font_size      = data.font_size,
+            color          = buttonColor,
+            font_color     = buttonFontColor,
+            value          = data.value,
+        })
+    end
+end
+
+function createButtons()
+    for i, data in ipairs(buttonData.button) do
+        local buttonNumber = spawnedButtonCount
+        local funcName = "button"..i
+        local func = data.cb
+        self.setVar(funcName, func)
+
+        self.createButton({
+            label=data.label, click_function=funcName, function_owner=self,
+            position=data.pos, height=data.height, width=data.width,
+            font_size=data.height, scale=buttonScale,
+            color=buttonColor, font_color=buttonFontColor
+        })
+        spawnedButtonCount = spawnedButtonCount + 1
+    end
+end
